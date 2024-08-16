@@ -60,7 +60,21 @@ async function run() {
       res.json(products);
     });
 
+    // Filter products
+    app.get("/api/products/filter", async (req, res) => {
+      const { brand, category, priceRange } = req.query;
+      const filter = {};
 
+      if (brand) filter.brand = brand;
+      if (category) filter.category = category;
+      if (priceRange) {
+        const [min, max] = priceRange.split("-").map(Number);
+        filter.price = { $gte: min, $lte: max };
+      }
+
+      const products = await productsCollection.find(filter).toArray();
+      res.json(products);
+    });
 
 
 // ------------------------
