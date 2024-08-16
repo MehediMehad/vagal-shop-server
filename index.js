@@ -38,63 +38,41 @@ async function run() {
       res.send(result);
     });
 // -----------
-    // Fetch products with pagination
-    app.get("/api/products", async (req, res) => {
-      const { page = 1, limit = 10 } = req.query;
-      const products = await productsCollection
-        .find()
-        .skip((page - 1) * limit)
-        .limit(parseInt(limit))
-        .toArray();
+app.get('/api/products', async (req, res) => {
+  const { page = 1, limit = 6, q, brand, category, priceRange, sortBy } = req.query;
 
-      const total = await productsCollection.countDocuments();
+  // Initialize filter
+  const filter = {};
 
-      res.json({ products, totalPages: Math.ceil(total / limit) });
-    });
-    // Search products by name
-    app.get("/api/products/search", async (req, res) => {
-      const { q } = req.query;
-      const products = await productsCollection
-        .find({ name: { $regex: q, $options: "i" } })
-        .toArray();
-      res.json(products);
-    });
+  if (q) filter.name = { $regex: q, $options: 'i' };
+  if (brand) filter.brand = brand;
+  if (category) filter.category = category;
+  if (priceRange) {
+    const [min, max] = priceRange.split('-').map(Number);
+    filter.price = { $gte: min, $lte: max };
+  }
 
-    // Filter products
-    app.get("/api/products/filter", async (req, res) => {
-      const { brand, category, priceRange } = req.query;
-      const filter = {};
+  // Initialize sorting option
+  let sortOption = {};
+  if (sortBy === 'price-asc') {
+    sortOption.price = 1;
+  } else if (sortBy === 'price-desc') {
+    sortOption.price = -1;
+  } else if (sortBy === 'date') {
+    sortOption._id = -1;
+  }
 
-      if (brand) filter.brand = brand;
-      if (category) filter.category = category;
-      if (priceRange) {
-        const [min, max] = priceRange.split("-").map(Number);
-        filter.price = { $gte: min, $lte: max };
-      }
+  // Fetch products with filter and sort
+  const products = await productsCollection.find(filter)
+    .sort(sortOption)
+    .skip((page - 1) * limit)
+    .limit(parseInt(limit))
+    .toArray();
 
-      const products = await productsCollection.find(filter).toArray();
-      res.json(products);
-    });
+  const total = await productsCollection.countDocuments(filter);
 
-    // Sort products
-    app.get("/api/products/sort", async (req, res) => {
-      const { sortBy } = req.query;
-      let sortOption = {};
-
-      if (sortBy === "price-asc") {
-        sortOption.price = 1;
-      } else if (sortBy === "price-desc") {
-        sortOption.price = -1;
-      } else if (sortBy === "date") {
-        sortOption._id = -1;
-      }
-
-      const products = await productsCollection
-        .find()
-        .sort(sortOption)
-        .toArray();
-      res.json(products);
-    });
+  res.json({ products, totalPages: Math.ceil(total / limit) });
+});
 // ------------------------
 
     // Send a ping to confirm a successful connection
