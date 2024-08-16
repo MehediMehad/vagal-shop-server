@@ -76,7 +76,25 @@ async function run() {
       res.json(products);
     });
 
+    // Sort products
+    app.get("/api/products/sort", async (req, res) => {
+      const { sortBy } = req.query;
+      let sortOption = {};
 
+      if (sortBy === "price-asc") {
+        sortOption.price = 1;
+      } else if (sortBy === "price-desc") {
+        sortOption.price = -1;
+      } else if (sortBy === "date") {
+        sortOption._id = -1;
+      }
+
+      const products = await productsCollection
+        .find()
+        .sort(sortOption)
+        .toArray();
+      res.json(products);
+    });
 // ------------------------
 
     // Send a ping to confirm a successful connection
