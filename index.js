@@ -51,7 +51,14 @@ async function run() {
 
       res.json({ products, totalPages: Math.ceil(total / limit) });
     });
-
+    // Search products by name
+    app.get("/api/products/search", async (req, res) => {
+      const { q } = req.query;
+      const products = await productsCollection
+        .find({ name: { $regex: q, $options: "i" } })
+        .toArray();
+      res.json(products);
+    });
 
 
 
